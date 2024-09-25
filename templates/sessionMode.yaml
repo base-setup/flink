@@ -1,0 +1,71 @@
+{{- if .Values.sessionMode.enabled }}
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: {{ .Values.sessionMode.clusterName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  image: {{ .Values.sessionMode.imageRepository | default .Values.global.imageRepository }}:{{ .Values.sessionMode.imageTag | default .Values.global.imageTag }}
+  imagePullPolicy: {{ .Values.sessionMode.imagePullPolicy | default .Values.global.imagePullPolicy }}
+  flinkVersion: {{ .Values.sessionMode.flinkVersion }}
+  restartNonce: {{ .Values.sessionMode.restartNonce | default 1 }}
+  mode: {{ .Values.sessionMode.mode | default "native" }}
+  {{- with .Values.sessionMode.flinkConfiguration}}
+  flinkConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  serviceAccount: {{ .Values.sessionMode.serviceAccount.name }}
+  {{- with .Values.sessionMode.jobManager }}
+  jobManager:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.sessionMode.taskManager }}
+  taskManager:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.sessionMode.ingress }}
+  ingress:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+---
+{{- if .Values.sessionMode.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  {{- with .Values.sessionMode.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ .Values.sessionMode.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+
+---
+{{- if .Values.sessionMode.serviceAccount.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.sessionMode.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.sessionMode.serviceAccount.rbac.rules }}
+rules:
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.sessionMode.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.sessionMode.serviceAccount.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.sessionMode.serviceAccount.name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

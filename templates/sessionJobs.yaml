@@ -1,0 +1,14 @@
+{{- if .Values.sessionMode.enabled }}
+{{- range .Values.sessionJobs }}
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkSessionJob
+metadata:
+  name: {{ .name }}
+spec:
+  deploymentName: {{ .deploymentName }}
+  {{- with .job }}
+  job:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

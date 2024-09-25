@@ -1,44 +1,116 @@
-clusterName: flink-custer
-flinkVersion: v1_19
-restartNonce: 1
-flinkConfiguration: {}
-mode: native
-image:
-  repository: flink
-  tag: 1.19.1-scala_2.12-java17
-  pullPolicy: IfNotPresent
-serviceAccount:
-  create: true
-  name: flink-cluster
-  rbac:
-    enabled: true
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-          - pods
-        verbs:
-          - "*"
-      - apiGroups:
-          - apps
-        resources:
-          - deployments
-        verbs:
-          - "*"
-jobManager:
-  resource:
-    memory: "1024m"
-    cpu: 1
-taskManager:
-  resource:
-    cpu: 1
-    memory: "1024m"
-ingress:
-  template: "flink.k8s.io/{{namespace}}/{{name}}(/|$)(.*)"
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
-  labels: {}
-  tls: []
+global:
+  imageRepository: flink
+  imageTag: 1.19.1-scala_2.12-java17
+  imagePullPolicy: IfNotPresent
+default:
+  flinkVersion: &flinkVersion v1_19
+  serviceAccount:
+    create: true
+    name: &serviceAccountName flink-cluster
+    rbac:
+      enabled: true
+      rules:
+        - apiGroups:
+            - ""
+          resources:
+            - configmaps
+            - pods
+          verbs:
+            - "*"
+        - apiGroups:
+            - apps
+          resources:
+            - deployments
+          verbs:
+            - "*"
+
+sessionMode:
+  enabled: false
+  clusterName: &sessionClusterName flink-cluster
+  flinkVersion: *flinkVersion
+  restartNonce: 1
+  flinkConfiguration: {}
+  mode: native
+  serviceAccount:
+    create: false
+    name: *serviceAccountName
+    rbac:
+      enabled: false
+  jobManager:
+    resource:
+      memory: "1024m"
+      cpu: 1
+  taskManager:
+    resource:
+      cpu: 1
+      memory: "1024m"
+  ingress:
+    template: "flink.k8s.io/{{namespace}}/{{name}}(/|$)(.*)"
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+    labels: {}
+    tls: []
+sessionJobs:
+  - name: job-example
+    deploymentName: *sessionClusterName
+    job:
+      jarURI: https://repo1.maven.org/maven2/org/apache/flink/flink-examples-streaming_2.12/1.16.1/flink-examples-streaming_2.12-1.16.1.jar
+      parallelism: 2
+      upgradeMode: stateless
+      entryClass: org.apache.flink.streaming.examples.statemachine.StateMachineExample
+
+applicationMode:
+  enabled: true
+  application:
+    - name: job-example
+      flinkVersion: *flinkVersion
+      restartNonce: 1
+      flinkConfiguration: {}
+      mode: native
+      serviceAccount:
+        create: false
+        name: *serviceAccountName
+        rbac:
+          enabled: false
+      volumes:
+        - name: downloads
+          emptyDir: { }
+      containers:
+        - name: flink-main-container
+          volumeMounts:
+            - mountPath: /opt/flink/downloads
+              name: downloads
+      jobManager:
+        resource:
+          memory: "1024m"
+          cpu: 1
+        initContainers:
+          # Sample init container for fetching remote artifacts
+          - name: busybox
+            image: busybox:1.35.0
+            volumeMounts:
+              - mountPath: /opt/flink/downloads
+                name: downloads
+            command:
+              - /bin/sh
+              - -c
+              - "wget -O /opt/flink/downloads/flink-examples-streaming.jar \
+                    https://repo1.maven.org/maven2/org/apache/flink/flink-examples-streaming_2.12/1.16.1/flink-examples-streaming_2.12-1.16.1.jar"
+      taskManager:
+        resource:
+          cpu: 1
+          memory: "1024m"
+      ingress:
+        template: "flink.k8s.io/{{namespace}}/{{name}}(/|$)(.*)"
+        className: "nginx"
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+        labels: {}
+        tls: []
+      job:
+        jarURI: local:///opt/flink/downloads/flink-examples-streaming.jar
+        parallelism: 2
+        upgradeMode: stateless
+        entryClass: org.apache.flink.streaming.examples.statemachine.StateMachineExample
 

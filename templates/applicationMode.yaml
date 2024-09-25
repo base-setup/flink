@@ -1,0 +1,105 @@
+{{- if .Values.applicationMode.enabled }}
+{{- range .Values.applicationMode.application }}
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  image: {{ .imageRepository | default $.Values.global.imageRepository }}:{{ .imageTag | default $.Values.global.imageTag }}
+  imagePullPolicy: {{ .imagePullPolicy | default $.Values.global.imagePullPolicy }}
+  flinkVersion: {{ .flinkVersion }}
+  restartNonce: {{ .restartNonce | default 1 }}
+  mode: {{ .mode | default "native" }}
+  {{- with .flinkConfiguration}}
+  flinkConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  serviceAccount: {{ .serviceAccount.name }}
+  podTemplate:
+    spec:
+    {{- with .initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- with .containers }}
+      containers:
+        {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- with .volumes }}
+      volumes:
+        {{- toYaml . | nindent 10 }}
+    {{- end }}
+  jobManager:
+    {{- with .jobManager.resource }}
+    resource:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    podTemplate:
+      spec:
+      {{- with .jobManager.initContainers }}
+        initContainers:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+      {{- with .jobManager.containers }}
+        containers:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+  {{- with .taskManager }}
+  taskManager:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .ingress }}
+  ingress:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .job }}
+  job:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+
+
+---
+{{- if .serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  {{- with .serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ .serviceAccount.name }}
+  namespace: {{ $.Release.Namespace }}
+
+---
+{{- if .serviceAccount.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .serviceAccount.name }}
+  namespace: {{ $.Release.Namespace }}
+  {{- with .serviceAccount.rbac.rules }}
+rules:
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .serviceAccount.name }}
+  namespace: {{ $.Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .serviceAccount.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .serviceAccount.name }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+
+{{- end }}
+{{- end }}
+{{- end }}
