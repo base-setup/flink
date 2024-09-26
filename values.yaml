@@ -1,8 +1,7 @@
-global:
+default:
   imageRepository: flink
   imageTag: 1.19.1-scala_2.12-java17
   imagePullPolicy: IfNotPresent
-default:
   flinkVersion: &flinkVersion v1_19
   serviceAccount:
     create: true
@@ -23,6 +22,7 @@ default:
             - deployments
           verbs:
             - "*"
+
 
 sessionMode:
   enabled: false

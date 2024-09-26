@@ -5,8 +5,8 @@ metadata:
   name: {{ .Values.sessionMode.clusterName }}
   namespace: {{ .Release.Namespace }}
 spec:
-  image: {{ .Values.sessionMode.imageRepository | default .Values.global.imageRepository }}:{{ .Values.sessionMode.imageTag | default .Values.global.imageTag }}
-  imagePullPolicy: {{ .Values.sessionMode.imagePullPolicy | default .Values.global.imagePullPolicy }}
+  image: {{ .Values.sessionMode.imageRepository | default .Values.default.imageRepository }}:{{ .Values.sessionMode.imageTag | default .Values.default.imageTag }}
+  imagePullPolicy: {{ .Values.sessionMode.imagePullPolicy | default .Values.default.imagePullPolicy }}
   flinkVersion: {{ .Values.sessionMode.flinkVersion }}
   restartNonce: {{ .Values.sessionMode.restartNonce | default 1 }}
   mode: {{ .Values.sessionMode.mode | default "native" }}

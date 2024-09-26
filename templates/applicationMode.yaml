@@ -6,8 +6,8 @@ metadata:
   name: {{ .name }}
   namespace: {{ $.Release.Namespace }}
 spec:
-  image: {{ .imageRepository | default $.Values.global.imageRepository }}:{{ .imageTag | default $.Values.global.imageTag }}
-  imagePullPolicy: {{ .imagePullPolicy | default $.Values.global.imagePullPolicy }}
+  image: {{ .imageRepository | default $.Values.default.imageRepository }}:{{ .imageTag | default $.Values.default.imageTag }}
+  imagePullPolicy: {{ .imagePullPolicy | default $.Values.default.imagePullPolicy }}
   flinkVersion: {{ .flinkVersion }}
   restartNonce: {{ .restartNonce | default 1 }}
   mode: {{ .mode | default "native" }}
